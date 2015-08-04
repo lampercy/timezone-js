@@ -39,6 +39,7 @@
   // usable on both client and server (node) side.
   'use strict';
   var root = this;
+  var buildInDate = Date;
 
   // Export the timezoneJS object for Node.js, with backwards-compatibility for the old `require()` API
   var timezoneJS = {};
@@ -229,7 +230,7 @@
     }
     // If the last string argument doesn't parse as a Date, treat it as tz
     if (typeof args[args.length - 1] === 'string') {
-      valid = Date.parse(args[args.length - 1].replace(/GMT[\+\-]\d+/, ''));
+      valid = buildInDate.parse(args[args.length - 1].replace(/GMT[\+\-]\d+/, ''));
       if (isNaN(valid) || valid === null) {  // Checking against null is required for compatability with Datejs
         tz = args.pop();
       }
@@ -237,10 +238,10 @@
     var is_dt_local = false;
     switch (args.length) {
       case 0:
-        dt = new Date();
+        dt = new buildInDate();
         break;
       case 1:
-        dt = new Date(args[0]);
+        dt = new buildInDate(args[0]);
         // Date strings are local if they do not contain 'Z', 'T' or timezone offsets like '+0200'
         //  - more info below
         if (typeof args[0] == 'string' && args[0].search(/[+-][0-9]{4}/) == -1
@@ -249,14 +250,14 @@
         }
         break;
       case 2:
-        dt = new Date(args[0], args[1]);
+        dt = new buildInDate(args[0], args[1]);
         is_dt_local = true;
         break;
       default:
         for (var i = 0; i < 7; i++) {
           arr[i] = args[i] || 0;
         }
-        dt = new Date(arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6]);
+        dt = new buildInDate(arr[0], arr[1], arr[2], arr[3], arr[4], arr[5], arr[6]);
         is_dt_local = true;
         break;
     }
@@ -342,7 +343,7 @@
       return res;
     },
     getUTCDateProxy: function () {
-      var dt = new Date(this._timeProxy);
+      var dt = new buildInDate(this._timeProxy);
       dt.setUTCMinutes(dt.getUTCMinutes() + this.getTimezoneOffset());
       return dt;
     },
@@ -443,11 +444,11 @@
       this.milliseconds = dt.getMilliseconds();
       this._day = dt.getDay();
       this._dateProxy = dt;
-      this._timeProxy = Date.UTC(this.year, this.month, this.date, this.hours, this.minutes, this.seconds, this.milliseconds);
+      this._timeProxy = buildInDate.UTC(this.year, this.month, this.date, this.hours, this.minutes, this.seconds, this.milliseconds);
       this._useCache = false;
     },
     setFromTimeProxy: function (utcMillis, tz) {
-      var dt = new Date(utcMillis);
+      var dt = new buildInDate(utcMillis);
       var tzOffset = tz ? timezoneJS.timezone.getTzInfo(utcMillis, tz, true).tzOffset : dt.getTimezoneOffset();
       dt.setTime(utcMillis + (dt.getTimezoneOffset() - tzOffset) * 60000);
       this.setFromDateObjProxy(dt);
@@ -637,7 +638,7 @@
       return [yea, mon, dat, t[0], t[1], t[2]];
     }
     function getZone(dt, tz) {
-      var utcMillis = typeof dt === 'number' ? dt : new Date(dt).getTime();
+      var utcMillis = typeof dt === 'number' ? dt : new buildInDate(dt).getTime();
       var t = tz;
       var zoneList = _this.zones[t];
       // Follow links to get to an actual zone
@@ -684,7 +685,7 @@
     //if isUTC is true, date is given in UTC, otherwise it's given
     // in local time (ie. date.getUTC*() returns local time components)
     function getRule(dt, zone, isUTC) {
-      var date = typeof dt === 'number' ? new Date(dt) : dt;
+      var date = typeof dt === 'number' ? new buildInDate(dt) : dt;
       var ruleset = zone[1];
       var basicOffset = zone[0];
 
@@ -719,7 +720,7 @@
         }
         offset *= 60 * 1000; // to millis
 
-        return new Date(date.getTime() + offset);
+        return new buildInDate(date.getTime() + offset);
       };
 
       //Step 1:  Find applicable rules for this year.
@@ -753,7 +754,7 @@
         else {
           //If we have a specific date, use that!
           if (!isNaN(rule[4])) {
-            effectiveDate = new Date(Date.UTC(year, SHORT_MONTHS[rule[3]], rule[4], hms[0], hms[1], hms[2], 0));
+            effectiveDate = new buildInDate(buildInDate.UTC(year, SHORT_MONTHS[rule[3]], rule[4], hms[0], hms[1], hms[2], 0));
           }
           //Let's hunt for the date.
           else {
@@ -762,14 +763,14 @@
             //Example: `lastThu`
             if (rule[4].substr(0, 4) === 'last') {
               // Start at the last day of the month and work backward.
-              effectiveDate = new Date(Date.UTC(year, SHORT_MONTHS[rule[3]] + 1, 1, hms[0] - 24, hms[1], hms[2], 0));
+              effectiveDate = new buildInDate(buildInDate.UTC(year, SHORT_MONTHS[rule[3]] + 1, 1, hms[0] - 24, hms[1], hms[2], 0));
               targetDay = SHORT_DAYS[rule[4].substr(4, 3)];
               operator = '<=';
             }
             //Example: `Sun>=15`
             else {
               //Start at the specified date.
-              effectiveDate = new Date(Date.UTC(year, SHORT_MONTHS[rule[3]], rule[4].substr(5), hms[0], hms[1], hms[2], 0));
+              effectiveDate = new buildInDate(buildInDate.UTC(year, SHORT_MONTHS[rule[3]], rule[4].substr(5), hms[0], hms[1], hms[2], 0));
               targetDay = SHORT_DAYS[rule[4].substr(0, 3)];
               operator = rule[4].substr(3, 2);
             }
@@ -820,7 +821,7 @@
 
       var compareDates = function (a, b, prev) {
         var year, rule;
-        if (!(a instanceof Date)) {
+        if (!(a instanceof buildInDate)) {
           year = a[0];
           rule = a[1];
           a = (!prev && EXACT_DATE_TIME[year] && EXACT_DATE_TIME[year][rule])
@@ -829,7 +830,7 @@
         } else if (prev) {
           a = convertDateToUTC(a, isUTC ? 'u' : 'w', prev);
         }
-        if (!(b instanceof Date)) {
+        if (!(b instanceof buildInDate)) {
           year = b[0];
           rule = b[1];
           b = (!prev && EXACT_DATE_TIME[year] && EXACT_DATE_TIME[year][rule]) ? EXACT_DATE_TIME[year][rule]
@@ -1011,7 +1012,7 @@
               if (arr.length < 3) break;
               //Process zone right here and replace 3rd element with the processed array.
               arr.splice(3, arr.length, processZone(arr));
-              if (arr[3]) arr[3] = Date.UTC.apply(null, arr[3]);
+              if (arr[3]) arr[3] = buildInDate.UTC.apply(null, arr[3]);
               arr[0] = -getBasicOffset(arr[0]);
               _this.zones[zone].push(arr);
               break;
